@@ -1,15 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Button,
-  TextInput,
-  Image,
-  ScrollView,
-} from 'react-native';
+import {StyleSheet,Text,View,TouchableOpacity,Button,TextInput,Image,ScrollView,} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -18,7 +9,7 @@ const Stack = createNativeStackNavigator();
 const logoImg = require('./assets/67.jpg');
 
 // --- Home Screen ---
-function HomeScreen({ navigation }) {
+function HomeScreen({ navigation }: { navigation: any }) {
   return (
     <View style={styles.container}>
       <Image
