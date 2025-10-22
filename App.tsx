@@ -41,7 +41,7 @@ function HomeScreen({ navigation }) {
 }
 
 // --- Menu Screen ---
-function MenuScreen({ menuItems }) { // AI-assisted: menuItems passed as prop from App
+function MenuScreen({ menuItems }) {
   const [selectedTab, setSelectedTab] = useState('Starters');
 
   // Filter items by selected tab
@@ -88,8 +88,8 @@ function MenuScreen({ menuItems }) { // AI-assisted: menuItems passed as prop fr
   );
 }
 
-// --- Owner Screen ---
-function OwnerScreen({ menuItems, setMenuItems }) { // AI-assisted: receive shared state from App
+// --- Owner Screen  This was heled by AI
+function OwnerScreen({ menuItems, setMenuItems }) {
   const [dishName, setDishName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -114,7 +114,6 @@ function OwnerScreen({ menuItems, setMenuItems }) { // AI-assisted: receive shar
   };
 
   const addDish = () => {
-    // AI-assisted: added dish to shared menuItems state so MenuScreen updates automatically
     if (!dishName || !description || !price) {
       alert('Please fill all fields');
       return;
@@ -189,7 +188,6 @@ function OwnerScreen({ menuItems, setMenuItems }) { // AI-assisted: receive shar
 
 // --- Main App ---
 export default function App() {
-  // AI-assisted: added shared state to pass menu items between Owner and Menu screens
   const [menuItems, setMenuItems] = useState([]); // shared state
 
   return (
@@ -202,10 +200,10 @@ export default function App() {
       >
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Menu">
-          {props => <MenuScreen {...props} menuItems={menuItems} />} {/*this was ai-assisted */}
+          {props => <MenuScreen {...props} menuItems={menuItems} />}
         </Stack.Screen>
         <Stack.Screen name="Owner">
-          {props => <OwnerScreen {...props} menuItems={menuItems} setMenuItems={setMenuItems} />} {/* AI-assisted */}
+          {props => <OwnerScreen {...props} menuItems={menuItems} setMenuItems={setMenuItems} />}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
