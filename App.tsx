@@ -1,207 +1,359 @@
+// App.js
+import React, { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  ScrollView,
+  Alert,
+  Platform,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import {StyleSheet,Text,View,TouchableOpacity,Button,TextInput,Image,ScrollView,} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 const Stack = createNativeStackNavigator();
 const logoImg = require('./assets/67.jpg');
 
-// --- Home Screen ---
-function HomeScreen({ navigation }: { navigation: any }) {
+// ---------- Dark Theme ----------
+const T = {
+  background: '#020202',
+  panel: '#111',
+  text: '#ffffff',
+  muted: '#bdb9b0',
+  accent: '#D4AF37',
+  buttonBg: '#f5f3f8',
+  buttonText: '#000',
+};
+
+// ---------- Helpers ----------
+const STORAGE_KEY = '@menu_items_v1';
+
+async function loadItems() {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch (e) {
+    console.warn('loadItems err', e);
+    return [];
+  }
+}
+
+async function saveItems(items) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch (e) {
+    console.warn('saveItems err', e);
+  }
+}
+
+// ---------- Home (Updated: Add Menu Removed) ----------
+function HomeScreen({ navigation, route }) {
+  const menuItems = route.params?.menuItems || [];
   return (
-    <View style={styles.container}>
-      <Image
-        source={logoImg}
-        style={{ width: 120, height: 120, borderRadius: 10, marginBottom: 20 }}
-      />
-      <Text style={styles.text}>Welcome to the Christoffel Dinner App!</Text>
+    <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
+      <StatusBar style="light" />
+      <Image source={logoImg} style={styles.logo} />
+      <Text style={styles.title}>Christoffel Dinner</Text>
+      <Text style={styles.hint}>Manage & preview your menu — dark mode only.</Text>
 
-      <View style={styles.button}>
-        <Button title="View Menu" color="#000000" onPress={() => navigation.navigate('Menu')} />
-      </View>
+      <TouchableOpacity
+        style={styles.bigButton}
+        onPress={() => navigation.navigate('Menu', { menuItems })}
+      >
+        <Text style={styles.bigButtonText}>View Menu</Text>
+      </TouchableOpacity>
 
-      <View style={styles.button}>
-        <Button title="Owner" color="#000000" onPress={() => navigation.navigate('Owner')} />
-      </View>
-
-      <StatusBar style="auto" />
-    </View>
+      <TouchableOpacity
+        style={styles.bigButton}
+        onPress={() => navigation.navigate('Owner')}
+      >
+        <Text style={styles.bigButtonText}>Owner</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
-// --- Menu Screen ---
-function MenuScreen({ menuItems }) {
-  const [selectedTab, setSelectedTab] = useState('Starters');
+// ---------- Menu ----------
+function MenuScreen({ route, navigation }) {
+  const [selected, setSelected] = useState('Starters');
+  const [items, setItems] = useState(route.params?.menuItems || []);
 
-  // Filter items by selected tab
-  const filteredItems = menuItems.filter(item => {
-    if (selectedTab === 'Starters') return item.category === 'Starter';
-    if (selectedTab === 'Mains') return item.category === 'Main';
-    if (selectedTab === 'Desserts') return item.category === 'Dessert';
-  });
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      const fresh = await loadItems();
+      setItems(fresh);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const filtered = items.filter((i) =>
+    selected === 'Starters'
+      ? i.category === 'Starter'
+      : selected === 'Mains'
+      ? i.category === 'Main'
+      : i.category === 'Dessert'
+  );
+
+  const total = items.length;
+  const avg =
+    total > 0
+      ? (items.reduce((s, it) => s + Number(it.price || 0), 0) / total).toFixed(2)
+      : '0.00';
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
       <StatusBar style="light" />
+      <Text style={styles.title}>Menu</Text>
+      <Text style={styles.hint}>Total: {total} · Average Price: R{avg}</Text>
+
       <View style={styles.navBar}>
-        {['Starters', 'Mains', 'Desserts'].map(tab => (
+        {['Starters', 'Mains', 'Desserts'].map((t) => (
           <TouchableOpacity
-            key={tab}
-            style={[styles.NavButton, selectedTab === tab && styles.NavButtonActive]}
-            onPress={() => setSelectedTab(tab)}
+            key={t}
+            style={selected === t ? styles.navItemActive : styles.navItem}
+            onPress={() => setSelected(t)}
           >
-            <Text style={[styles.NavButtonText, selectedTab === tab && styles.NavButtonTextActive]}>
-              {tab}
+            <Text
+              style={selected === t ? styles.navTextActive : styles.navText}
+            >
+              {t}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={{ alignItems: 'center', paddingBottom: 40 }}>
-        {filteredItems.length === 0 && <Text style={styles.Sub}>No items in this category yet</Text>}
-        {filteredItems.map((item, index) => (
-          <View key={index} style={{ marginBottom: 25, alignItems: 'center' }}>
-            {item.image && (
-              <Image
-                source={{ uri: item.image }}
-                style={{ width: 280, height: 180, borderRadius: 15, marginBottom: 10 }}
-              />
-            )}
-            <Text style={styles.Sub}>{item.name}</Text>
-            <Text style={styles.Sub}>{item.description}</Text>
-            <Text style={styles.Sub}>R{item.price}</Text>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
+      {filtered.length === 0 && (
+        <Text style={{ color: T.muted, marginTop: 16 }}>
+          No items in this category yet — go add some!
+        </Text>
+      )}
+
+      {filtered.map((it, idx) => (
+        <View key={idx} style={styles.card}>
+          {it.image ? (
+            <Image source={{ uri: it.image }} style={styles.dishImg} />
+          ) : (
+            <Image source={logoImg} style={styles.dishImg} />
+          )}
+          <Text style={styles.dishTitle}>{it.name}</Text>
+          <Text style={styles.dishDesc}>{it.description}</Text>
+          <Text style={styles.price}>R{Number(it.price).toFixed(2)}</Text>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
-// --- Owner Screen  This was helped by AI
-function OwnerScreen({ menuItems, setMenuItems }) {
-  const [dishName, setDishName] = useState('');
-  const [description, setDescription] = useState('');
+// ---------- Owner ----------
+function OwnerScreen({ navigation }) {
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('Starter');
   const [image, setImage] = useState(null);
 
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const saved = await loadItems();
+      setItems(saved);
+    })();
+  }, []);
+
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      alert('Permission is required!');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission required', 'Enable gallery access.');
+        return;
+      }
+
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!res.canceled && res.assets?.length > 0) {
+        setImage(res.assets[0].uri);
+      }
+    } catch (e) {
+      console.warn(e);
+      Alert.alert('Image error', 'Could not pick image.');
     }
   };
 
-  const addDish = () => {
-    if (!dishName || !description || !price) {
-      alert('Please fill all fields');
+  const addDish = async () => {
+    if (!name.trim() || !desc.trim() || !price.trim()) {
+      Alert.alert('Missing fields', 'Fill all fields.');
       return;
     }
-    const newDish = { name: dishName, description, price, category, image };
-    setMenuItems([...menuItems, newDish]);
-    alert('Dish added!');
-    setDishName('');
-    setDescription('');
+
+    if (isNaN(Number(price))) {
+      Alert.alert('Invalid price', 'Enter a valid number.');
+      return;
+    }
+
+    const newDish = {
+      name: name.trim(),
+      description: desc.trim(),
+      price: Number(price).toFixed(2),
+      category,
+      image: image || null,
+    };
+
+    const next = [...items, newDish];
+    setItems(next);
+    await saveItems(next);
+
+    setName('');
+    setDesc('');
     setPrice('');
     setImage(null);
+    setCategory('Starter');
+
+    navigation.navigate('Menu');
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.text}>Owner Page</Text>
+    <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
+      <StatusBar style="light" />
+      <Text style={styles.title}>Owner</Text>
+      <Text style={styles.hint}>Add a new dish. Items store automatically.</Text>
 
       <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
         {image ? (
-          <Image source={{ uri: image }} style={styles.previewImage} />
+          <Image
+            source={{ uri: image }}
+            style={{ width: '100%', height: '100%', borderRadius: 12 }}
+          />
         ) : (
-          <Text style={styles.Sub}>Tap to select image</Text>
+          <Text style={{ color: T.muted }}>Tap to select image</Text>
         )}
       </TouchableOpacity>
 
       <TextInput
         style={styles.input}
-        placeholder="Dish Name"
-        placeholderTextColor="#aaa"
-        value={dishName}
-        onChangeText={setDishName}
+        placeholder="Dish name"
+        placeholderTextColor={T.muted}
+        value={name}
+        onChangeText={setName}
       />
-
       <TextInput
-        style={[styles.input, { height: 80 }]}
+        style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
         placeholder="Description"
-        placeholderTextColor="#aaa"
+        placeholderTextColor={T.muted}
         multiline
-        value={description}
-        onChangeText={setDescription}
+        value={desc}
+        onChangeText={setDesc}
       />
-
       <TextInput
         style={styles.input}
-        placeholder="Price"
-        placeholderTextColor="#aaa"
-        keyboardType="numeric"
+        placeholder="Price (e.g. 45.00)"
+        placeholderTextColor={T.muted}
+        keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
         value={price}
         onChangeText={setPrice}
       />
 
-      <View style={styles.navBar}>
-        {['Starter', 'Main', 'Dessert'].map(type => (
+      <View
+        style={{
+          width: '92%',
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+          marginTop: 12,
+        }}
+      >
+        {['Starter', 'Main', 'Dessert'].map((c) => (
           <TouchableOpacity
-            key={type}
-            style={[styles.NavButton, category === type && styles.NavButtonActive]}
-            onPress={() => setCategory(type)}
+            key={c}
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: category === c ? T.accent : T.panel,
+            }}
+            onPress={() => setCategory(c)}
           >
-            <Text style={[styles.NavButtonText, category === type && styles.NavButtonTextActive]}>
-              {type}
+            <Text
+              style={{
+                color: category === c ? '#000' : T.text,
+                fontWeight: '700',
+              }}
+            >
+              {c}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <View style={styles.button}>
-        <Button title="Add Dish" color="#000000" onPress={addDish} />
-      </View>
+      <TouchableOpacity
+        style={[styles.bigButton, { marginTop: 18 }]}
+        onPress={addDish}
+      >
+        <Text style={styles.bigButtonText}>Add Dish</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// --- Main App ---
+// ---------- Main App ----------
 export default function App() {
-  const [menuItems, setMenuItems] = useState([]); // shared state
+  const [ready, setReady] = useState(false);
+  const [initialItems, setInitialItems] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const items = await loadItems();
+      setInitialItems(items);
+      setReady(true);
+    })();
+  }, []);
+
+  if (!ready) return null;
 
   return (
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerStyle: { backgroundColor: '#020202' },
+          headerStyle: { backgroundColor: T.background },
           headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: '700' },
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Home">
+          {(props) => (
+            <HomeScreen
+              {...props}
+              route={{ ...props.route, params: { menuItems: initialItems } }}
+            />
+          )}
+        </Stack.Screen>
+
         <Stack.Screen name="Menu">
-          {props => <MenuScreen {...props} menuItems={menuItems} />}
+          {(props) => (
+            <MenuScreen
+              {...props}
+              route={{ ...props.route, params: { menuItems: initialItems } }}
+            />
+          )}
         </Stack.Screen>
-        <Stack.Screen name="Owner">
-          {props => <OwnerScreen {...props} menuItems={menuItems} setMenuItems={setMenuItems} />}
-        </Stack.Screen>
+
+        <Stack.Screen name="Owner" component={OwnerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-// --- Styles ---
+// ---------- Styles moved to bottom ----------
 const styles = StyleSheet.create({
   app: { flex: 1, backgroundColor: T.background },
   centerScroll: { alignItems: 'center', paddingTop: 40, paddingBottom: 60 },
