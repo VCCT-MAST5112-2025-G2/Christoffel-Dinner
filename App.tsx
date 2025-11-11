@@ -79,7 +79,7 @@ function MenuScreen({ menuItems }) {
   );
 }
 
-// --- Owner Screen  This was heled by AI
+// --- Owner Screen  This was helped by AI
 function OwnerScreen({ menuItems, setMenuItems }) {
   const [dishName, setDishName] = useState('');
   const [description, setDescription] = useState('');
@@ -203,76 +203,74 @@ export default function App() {
 
 // --- Styles ---
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: '#020202',
-    paddingTop: 60,
-    alignItems: 'center',
-    paddingBottom: 60,
-  },
-  text: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  Sub: {
-    color: '#f5f3f8',
-    fontSize: 16,
+  app: { flex: 1, backgroundColor: T.background },
+  centerScroll: { alignItems: 'center', paddingTop: 40, paddingBottom: 60 },
+  logo: { width: 120, height: 120, borderRadius: 12, marginBottom: 18 },
+  title: { color: T.text, fontSize: 22, fontWeight: '700', marginBottom: 6 },
+  hint: {
+    color: T.muted,
+    fontSize: 14,
+    marginBottom: 14,
     textAlign: 'center',
-    margin: 10,
+    paddingHorizontal: 20,
   },
-  button: {
-    marginTop: 20,
-    backgroundColor: '#f5f3f8ff',
-    padding: 10,
-    borderRadius: 5,
+  bigButton: {
+    width: '85%',
+    backgroundColor: T.buttonBg,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
   },
+  bigButtonText: { color: T.buttonText, fontWeight: '700' },
   navBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#111',
+    backgroundColor: T.panel,
     paddingVertical: 10,
-    width: '90%',
-    borderRadius: 10,
-    marginTop: 20,
+    width: '92%',
+    borderRadius: 12,
+    marginTop: 18,
   },
-  NavButton: {
+  navItem: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
+  navItemActive: {
+    backgroundColor: T.accent,
+    borderRadius: 8,
     paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 10,
+    paddingHorizontal: 12,
   },
-  NavButtonActive: {
-    backgroundColor: '#f5f3f8',
+  navText: { color: T.text, fontWeight: '700' },
+  navTextActive: { color: '#000', fontWeight: '800' },
+  card: {
+    width: '92%',
+    backgroundColor: T.panel,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
   },
-  NavButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  NavButtonTextActive: {
-    color: '#000',
-  },
+  dishImg: { width: '100%', height: 170, borderRadius: 10, marginBottom: 10 },
+  dishTitle: { color: T.text, fontSize: 18, fontWeight: '700' },
+  dishDesc: { color: T.muted, marginTop: 6, marginBottom: 8 },
+  price: { color: T.accent, fontWeight: '800' },
   input: {
-    width: '85%',
-    backgroundColor: '#111',
-    color: '#fff',
-    padding: 10,
+    width: '92%',
+    backgroundColor: T.panel,
+    color: T.text,
+    padding: 12,
     borderRadius: 10,
-    marginTop: 10,
+    alignSelf: 'center',
+    marginTop: 12,
   },
   imagePicker: {
-    width: 250,
-    height: 150,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#fff',
+    width: '92%',
+    height: 160,
+    backgroundColor: T.panel,
+    borderRadius: 12,
+    alignSelf: 'center',
+    marginTop: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 20,
-  },
-  previewImage: {
-    width: 250,
-    height: 150,
-    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#222',
   },
 });
