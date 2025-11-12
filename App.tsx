@@ -36,7 +36,7 @@ async function loadItems() {
   }
 }
 
-async function saveItems(items) {
+async function saveItems(items: any[]) {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch (e) {
@@ -45,7 +45,7 @@ async function saveItems(items) {
 }
 
 // ---------- Home ----------
-function HomeScreen({ navigation, route }) {
+function HomeScreen({ navigation, route }: any) {
   const menuItems = route.params?.menuItems || [];
   return (
     <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
@@ -72,9 +72,9 @@ function HomeScreen({ navigation, route }) {
 }
 
 // ---------- Menu ----------
-function MenuScreen({ route, navigation }) {
+function MenuScreen({ route, navigation }: any) {
   const [selected, setSelected] = useState('Starters');
-  const [items, setItems] = useState(route.params?.menuItems || []);
+  const [items, setItems] = useState<any[]>(route.params?.menuItems || []);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', async () => {
@@ -84,7 +84,7 @@ function MenuScreen({ route, navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-  const filtered = items.filter((i) =>
+  const filtered = items.filter((i: any) =>
     selected === 'Starters'
       ? i.category === 'Starter'
       : selected === 'Mains'
@@ -95,7 +95,7 @@ function MenuScreen({ route, navigation }) {
   const total = items.length;
   const avg =
     total > 0
-      ? (items.reduce((s, it) => s + Number(it.price || 0), 0) / total).toFixed(2)
+      ? (items.reduce((s: number, it: any) => s + Number(it.price || 0), 0) / total).toFixed(2)
       : '0.00';
 
   return (
@@ -126,7 +126,7 @@ function MenuScreen({ route, navigation }) {
         </Text>
       )}
 
-      {filtered.map((it, idx) => (
+      {filtered.map((it: any, idx: number) => (
         <View key={idx} style={styles.card}>
           {it.image ? (
             <Image source={{ uri: it.image }} style={styles.dishImg} />
@@ -143,14 +143,14 @@ function MenuScreen({ route, navigation }) {
 }
 
 // ---------- Owner ----------
-function OwnerScreen({ navigation }) {
+function OwnerScreen({ navigation }: any) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('Starter');
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
 
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -175,7 +175,7 @@ function OwnerScreen({ navigation }) {
       });
 
       if (!res.canceled && res.assets?.length > 0) {
-        setImage(res.assets[0].uri);
+        setImage(res.assets[0].uri as string);
       }
     } catch (e) {
       console.warn(e);
