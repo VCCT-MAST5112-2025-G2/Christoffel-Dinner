@@ -1,27 +1,27 @@
-// App.js
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  StyleSheet,Text,View,TouchableOpacity,TextInput,Image,ScrollView,Alert,Platform,} from 'react-native';
+  StyleSheet, Text, View, TouchableOpacity, TextInput,
+  Image, ScrollView, Alert, Platform
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 const Stack = createNativeStackNavigator();
 const logoImg = require('./assets/67.jpg');
 
-// ---------- Dark Theme ----------
 const T = {
   background: '#020202',
   panel: '#111',
   text: '#ffffff',
   muted: '#bdb9b0',
-  accent: '#ffffffff',
+  accent: '#ffffff',
   buttonBg: '#f5f3f8',
   buttonText: '#000',
 };
-
 
 const STORAGE_KEY = '@menu_items_v1';
 
@@ -36,7 +36,7 @@ async function loadItems() {
   }
 }
 
-async function saveItems(items: any[]) {
+async function saveItems(items) {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch (e) {
@@ -44,19 +44,18 @@ async function saveItems(items: any[]) {
   }
 }
 
-// ---------- Home ----------
-function HomeScreen({ navigation, route }: any) {
-  const menuItems = route.params?.menuItems || [];
+//Home
+function HomeScreen({ navigation }) {
   return (
     <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
       <StatusBar style="light" />
       <Image source={logoImg} style={styles.logo} />
       <Text style={styles.title}>Christoffel Dinner</Text>
-      <Text style={styles.hint}>Welcome</Text>
+      <Text style={styles.hint}>Manage</Text>
 
       <TouchableOpacity
         style={styles.bigButton}
-        onPress={() => navigation.navigate('Menu', { menuItems })}
+        onPress={() => navigation.navigate('Menu')} 
       >
         <Text style={styles.bigButtonText}>View Menu</Text>
       </TouchableOpacity>
@@ -71,38 +70,37 @@ function HomeScreen({ navigation, route }: any) {
   );
 }
 
-// ---------- Menu ----------
-function MenuScreen({ route, navigation }: any) {
+// Menue
+function MenuScreen() {
   const [selected, setSelected] = useState('Starters');
-  const [items, setItems] = useState<any[]>(route.params?.menuItems || []);
+  const [items, setItems] = useState([]);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', async () => {
-      const fresh = await loadItems();
-      setItems(fresh);
-    });
-    return unsubscribe;
-  }, [navigation]);
+  // Ensures data is fresh every time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const fetchItems = async () => {
+        const fresh = await loadItems();
+        setItems(fresh);
+      };
+      fetchItems();
+      return () => {}; 
+    }, [])
+  );
 
-  const filtered = items.filter((i: any) =>
+  const filtered = items.filter((i) =>
     selected === 'Starters'
       ? i.category === 'Starter'
       : selected === 'Mains'
       ? i.category === 'Main'
-      : i.category === 'Dessert'
+      : selected === 'Desserts' 
+      ? i.category === 'Dessert' 
+      : false
   );
-
-  const total = items.length;
-  const avg =
-    total > 0
-      ? (items.reduce((s: number, it: any) => s + Number(it.price || 0), 0) / total).toFixed(2)
-      : '0.00';
 
   return (
     <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
       <StatusBar style="light" />
       <Text style={styles.title}>Menu</Text>
-      <Text style={styles.hint}>Total: {total} · Average Price: R{avg}</Text>
 
       <View style={styles.navBar}>
         {['Starters', 'Mains', 'Desserts'].map((t) => (
@@ -122,17 +120,16 @@ function MenuScreen({ route, navigation }: any) {
 
       {filtered.length === 0 && (
         <Text style={{ color: T.muted, marginTop: 16 }}>
-          No items in category — owner will add some.
+          No items in this category yet.
         </Text>
       )}
 
-      {filtered.map((it: any, idx: number) => (
+      {filtered.map((it, idx) => (
         <View key={idx} style={styles.card}>
-          {it.image ? (
-            <Image source={{ uri: it.image }} style={styles.dishImg} />
-          ) : (
-            <Image source={logoImg} style={styles.dishImg} />
-          )}
+          <Image 
+            source={it.image ? { uri: it.image } : logoImg} 
+            style={styles.dishImg} 
+          />
           <Text style={styles.dishTitle}>{it.name}</Text>
           <Text style={styles.dishDesc}>{it.description}</Text>
           <Text style={styles.price}>R{Number(it.price).toFixed(2)}</Text>
@@ -142,278 +139,212 @@ function MenuScreen({ route, navigation }: any) {
   );
 }
 
-// ---------- Owner ----------
-function OwnerScreen({ navigation }: any) {
+// Owner screen 
+function OwnerScreen({ navigation }) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('Starter');
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState(null);
+  const [items, setItems] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(null);
 
-  const [items, setItems] = useState<any[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      const saved = await loadItems();
-      setItems(saved);
-    })();
-  }, []);
-
-  const pickImage = async () => {
-    try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Permission required', 'Enable gallery access.');
-        return;
-      }
-
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!res.canceled && res.assets?.length > 0) {
-        setImage(res.assets[0].uri as string);
-      }
-    } catch (e) {
-      console.warn(e);
-      Alert.alert('Image error', 'Could not pick image.');
-    }
+  // reloads
+  useFocusEffect(
+    useCallback(() => {
+      const loadInitialItems = async () => {
+        const saved = await loadItems();
+        setItems(saved);
+      };
+      loadInitialItems();
+      return () => {};
+    }, [])
+  );
+  
+  const resetForm = () => {
+    setName(''); setDesc(''); setPrice(''); setCategory('Starter'); setImage(null); setEditingIndex(null);
   };
 
-  const addDish = async () => {
-    if (!name.trim() || !desc.trim() || !price.trim()) {
-      Alert.alert('Missing fields', 'Fill all fields.');
-      return;
-    }
+  const pickImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return Alert.alert('Permission required', 'Enable gallery access.');
 
-    if (isNaN(Number(price))) {
-      Alert.alert('Invalid price', 'Enter a valid number.');
-      return;
-    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
 
-    const newDish = {
-      name: name.trim(),
-      description: desc.trim(),
-      price: Number(price).toFixed(2),
-      category,
-      image: image || null,
+    if (!res.canceled && res.assets?.length > 0) setImage(res.assets[0].uri);
+  };
+
+  const saveDish = async () => {
+    if (!name.trim() || !desc.trim() || !price.trim()) return Alert.alert('Missing fields', 'Fill all fields.');
+    
+    const parsedPrice = Number(price);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) return Alert.alert('Invalid price', 'Enter a valid positive number for the price.');
+
+    const newDish = { 
+        name: name.trim(), 
+        description: desc.trim(), 
+        price: parsedPrice.toFixed(2),
+        category, 
+        image: image || null 
     };
+    
+    let next;
+    if (editingIndex !== null) {
+      next = [...items];
+      next[editingIndex] = newDish;
+    } else {
+      next = [...items, newDish];
+    }
 
-    const next = [...items, newDish];
     setItems(next);
     await saveItems(next);
 
-    setName('');
-    setDesc('');
-    setPrice('');
-    setImage(null);
-    setCategory('Starter');
+    resetForm();
+    Alert.alert('Success', 'Dish saved successfully!');
+  };
 
-    navigation.navigate('Menu');
+  const deleteDish = async (index) => {
+    const next = items.filter((_, i) => i !== index);
+    setItems(next);
+    await saveItems(next);
+    if (editingIndex === index) {
+      resetForm();
+    }
+  };
+  
+  const startEdit = (it, idx) => {
+    setName(it.name); 
+    setDesc(it.description); 
+    setPrice(it.price); 
+    setCategory(it.category); 
+    setImage(it.image); 
+    setEditingIndex(idx);
   };
 
   return (
     <ScrollView style={styles.app} contentContainerStyle={styles.centerScroll}>
       <StatusBar style="light" />
       <Text style={styles.title}>Owner</Text>
-      <Text style={styles.hint}>Please add a new dish. Items stored.</Text>
+      <Text style={styles.hint}>Add, edit, or delete dishes here.</Text>
 
       <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-        {image ? (
-          <Image
-            source={{ uri: image }}
-            style={{ width: '100%', height: '100%', borderRadius: 12 }}
-          />
-        ) : (
-          <Text style={{ color: T.muted }}>Tap to select image </Text>
-        )}
+        {image ? <Image source={{ uri: image }} style={{ width: '100%', height: '100%', borderRadius: 12 }} /> : <Text style={{ color: T.muted }}>Tap to select image</Text>}
       </TouchableOpacity>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Dish name"
-        placeholderTextColor={T.muted}
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
-        placeholder="Description"
-        placeholderTextColor={T.muted}
-        multiline
-        value={desc}
-        onChangeText={setDesc}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Price (e.g. 45.00)"
-        placeholderTextColor={T.muted}
-        keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
-        value={price}
-        onChangeText={setPrice}
+      
+      <TextInput style={styles.input} placeholder="Dish name" placeholderTextColor={T.muted} value={name} onChangeText={setName} />
+      <TextInput style={[styles.input, { height: 90, textAlignVertical: 'top' }]} placeholder="Description" placeholderTextColor={T.muted} multiline value={desc} onChangeText={setDesc} />
+      <TextInput 
+        style={styles.input} 
+        placeholder="Price (e.g. 45.00)" 
+        placeholderTextColor={T.muted} 
+        keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'} 
+        value={price} 
+        onChangeText={setPrice} 
       />
 
-      <View
-        style={{
-          width: '92%',
-          flexDirection: 'row',
-          justifyContent: 'space-around',
-          marginTop: 12,
-        }}
-      >
+      <View style={{ width: '92%', flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 }}>
         {['Starter', 'Main', 'Dessert'].map((c) => (
-          <TouchableOpacity
-            key={c}
-            style={{
-              padding: 8,
-              borderRadius: 8,
-              backgroundColor: category === c ? T.accent : T.panel,
-            }}
-            onPress={() => setCategory(c)}
-          >
-            <Text
-              style={{
-                color: category === c ? '#000' : T.text,
-                fontWeight: '700',
-              }}
-            >
-              {c}
-            </Text>
+          <TouchableOpacity key={c} style={{ padding: 8, borderRadius: 8, backgroundColor: category === c ? T.accent : T.panel }} onPress={() => setCategory(c)}>
+            <Text style={{ color: category === c ? '#000' : T.text, fontWeight: '700' }}>{c}</Text>
           </TouchableOpacity>
         ))}
       </View>
+      
+      {editingIndex !== null && (
+        <TouchableOpacity style={[styles.bigButton, { marginTop: 18, backgroundColor: T.muted }]} onPress={resetForm}>
+          <Text style={styles.bigButtonText}>Cancel Edit</Text>
+        </TouchableOpacity>
+      )}
 
-      <TouchableOpacity
-        style={[styles.bigButton, { marginTop: 18 }]}
-        onPress={addDish}
-      >
-        <Text style={styles.bigButtonText}>Add Dish</Text>
+      <TouchableOpacity style={[styles.bigButton, { marginTop: 18 }]} onPress={saveDish}>
+        <Text style={styles.bigButtonText}>{editingIndex !== null ? 'Save Changes' : 'Add Dish'}</Text>
       </TouchableOpacity>
+
+      <Text style={{ color: T.text, fontSize: 18, fontWeight: '700', marginTop: 30, marginBottom: 10 }}>Existing Dishes</Text>
+      {items.length === 0 && <Text style={{ color: T.muted }}>No dishes found.</Text>}
+      
+      {items.map((it, idx) => (
+        <View key={idx} style={[styles.card, { marginTop: 12, borderColor: editingIndex === idx ? T.accent : 'transparent', borderWidth: editingIndex === idx ? 2 : 0 }]}>
+          <Image source={it.image ? { uri: it.image } : logoImg} style={styles.dishImg} />
+          <Text style={styles.dishTitle}>{it.name}</Text>
+          <Text style={styles.dishDesc}>{it.description}</Text>
+          <Text style={styles.price}>R{it.price}</Text>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+            <TouchableOpacity style={styles.editButton} onPress={() => startEdit(it, idx)}>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={() => deleteDish(idx)}>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
     </ScrollView>
   );
 }
 
-// ---------- Main App ----------
+// Front Page 
 export default function App() {
-  const [ready, setReady] = useState(false);
-  const [initialItems, setInitialItems] = useState([]);
-
-  useEffect(() => {
-    (async () => {
-      const items = await loadItems();
-      setInitialItems(items);
-      setReady(true);
-    })();
-  }, []);
-
-  if (!ready) return null;
-
   return (
     <NavigationContainer>
       <Stack.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: T.background },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: '700' },
-        }}
+        screenOptions={{ headerStyle: { backgroundColor: T.background }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}
       >
-        <Stack.Screen name="Home">
-          {(props) => (
-            <HomeScreen
-              {...props}
-              route={{ ...props.route, params: { menuItems: initialItems } }}
-            />
-          )}
-        </Stack.Screen>
-
-        <Stack.Screen name="Menu">
-          {(props) => (
-            <MenuScreen
-              {...props}
-              route={{ ...props.route, params: { menuItems: initialItems } }}
-            />
-          )}
-        </Stack.Screen>
-
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Menu" component={MenuScreen} />
         <Stack.Screen name="Owner" component={OwnerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-// ---------- Styles moved to bottom ----------
+// Style sheet
 const styles = StyleSheet.create({
-  app: { flex: 1, backgroundColor: T.background },
+  app: { flex: 1,
+   backgroundColor: T.background },
+
   centerScroll: { alignItems: 'center', paddingTop: 40, paddingBottom: 60 },
+
   logo: { width: 120, height: 120, borderRadius: 12, marginBottom: 18 },
+
   title: { color: T.text, fontSize: 22, fontWeight: '700', marginBottom: 6 },
-  hint: {
-    color: T.muted,
-    fontSize: 14,
-    marginBottom: 14,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  bigButton: {
-    width: '85%',
-    backgroundColor: T.buttonBg,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 12,
-  },
+
+  hint: { color: T.muted, fontSize: 14, marginBottom: 14, textAlign: 'center', paddingHorizontal: 20 },
+
+  bigButton: { width: '85%', backgroundColor: T.buttonBg, paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 12 },
   bigButtonText: { color: T.buttonText, fontWeight: '700' },
-  navBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: T.panel,
-    paddingVertical: 10,
-    width: '92%',
-    borderRadius: 12,
-    marginTop: 18,
-  },
+
+  navBar: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: T.panel, paddingVertical: 10, width: '92%', borderRadius: 12, marginTop: 18 },
+
   navItem: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
-  navItemActive: {
-    backgroundColor: T.accent,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
+
+
+  navItemActive: { backgroundColor: T.accent, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
   navText: { color: T.text, fontWeight: '700' },
+
   navTextActive: { color: '#000', fontWeight: '800' },
-  card: {
-    width: '92%',
-    backgroundColor: T.panel,
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 16,
-  },
+
+  card: { width: '92%', backgroundColor: T.panel, borderRadius: 12, padding: 14, marginTop: 16 },
+
   dishImg: { width: '100%', height: 170, borderRadius: 10, marginBottom: 10 },
+
   dishTitle: { color: T.text, fontSize: 18, fontWeight: '700' },
+
   dishDesc: { color: T.muted, marginTop: 6, marginBottom: 8 },
+
   price: { color: T.accent, fontWeight: '800' },
-  input: {
-    width: '92%',
-    backgroundColor: T.panel,
-    color: T.text,
-    padding: 12,
-    borderRadius: 10,
-    alignSelf: 'center',
-    marginTop: 12,
-  },
-  imagePicker: {
-    width: '92%',
-    height: 160,
-    backgroundColor: T.panel,
-    borderRadius: 12,
-    alignSelf: 'center',
-    marginTop: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#222',
-  },
+
+  input: { width: '92%', backgroundColor: T.panel, color: T.text, padding: 12, borderRadius: 10, alignSelf: 'center', marginTop: 12 },
+
+  imagePicker: { width: '92%', height: 160, backgroundColor: T.panel, borderRadius: 12, alignSelf: 'center', marginTop: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#222' },
+
+  editButton: { backgroundColor: '#4caf50', padding: 8, borderRadius: 8, flex: 1, alignItems: 'center', marginRight: 6 },
+  
+  deleteButton: { backgroundColor: '#f44336', padding: 8, borderRadius: 8, flex: 1, alignItems: 'center' },
 });
