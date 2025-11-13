@@ -65,7 +65,43 @@ https://youtube.com/shorts/gZBvYe24oX4?si=2JlYAiKKzs0vJ6TQ ( android version)
 https://youtube.com/shorts/WNhAF-dQVNA?si=U4fejlz2z7_bEgQw ( IOS version) 
 
 Github links 
-https://github.com/St10480736
+https://github.com/St10480736 
+
+## ChangeLog 
+
+##  part 3 : What was added 
+
+- updated the ui for the App
+- Added audio to video
+- added  an edit and delete fuction in the owners screen
+- committed work
+- changed home screen of application
+
+## Set Up 
+
+ - Set up React Native with Expo
+
+- added dependenceys 
+
+- Created a simple and user-friendly Home Screen layout
+
+- Implemented navigation between Home and Owner screen
+
+ ## final Video
+ App demo video: https://youtu.be/DkkYPiBStAk
+  
+## screenshots 
+![d](https://github.com/user-attachments/assets/ec961064-b237-47b2-ba06-772cbb98facb)
+![e](https://github.com/user-attachments/assets/d40ad5aa-89b8-40b6-ae3d-7047c2d6c9cc)
+![A](https://github.com/user-attachments/assets/910232bb-a059-4d25-97a5-16b676beea26)
+![b](https://github.com/user-attachments/assets/f4931fac-a970-4c0e-a9d5-eec18dfa79df)
+![c](https://github.com/user-attachments/assets/ca4dc7f3-c7eb-4972-85a8-e87bb2d81ddb)
+
+## Github links 
+https://github.com/St10480736 
+
+
+
 
 
    
